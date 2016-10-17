@@ -64,13 +64,13 @@ def create_convolution_layer_1D(input, filter_size, n_filters_in, n_filters_out,
 		return activation(h)
 
 def create_batch_normalization_layer(input, is_training, scope='BN'):
-    bn_train = tf.contrib.layers.batch_norm(input, decay=0.999, center=True, scale=True,
+    bn_train = tf.contrib.layers.batch_norm(input, decay=0.9, center=True, scale=True,
     updates_collections=None,
     is_training=True,
     reuse=None,
     trainable=True,
     scope=scope)
-    bn_inference = tf.contrib.layers.batch_norm(input, decay=0.999, center=True, scale=True,
+    bn_inference = tf.contrib.layers.batch_norm(input, decay=0.9, center=True, scale=True,
     updates_collections=None,
     is_training=False,
     reuse=True,

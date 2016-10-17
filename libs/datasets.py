@@ -26,9 +26,9 @@ def load_activity_data(filename):
 
 	# Normalize data
 	history = data[:, 0:480-96]
-	quarter_means = np.mean(np.reshape(history, (len(history) * 4, 96)), axis=0)
-	data = data[:, 480-96:] - quarter_means
-	data = utils.normalize(data)
+	history_means = np.mean(np.reshape(history, (len(history) * 4, 96)), axis=0)
+	history_std = np.std(np.reshape(history, (len(history) * 4, 96)), axis=0)
+	data = (data[:, 480-96:] - history_means) / history_std
 
 	# Split train/test data
 	train_data, train_labels, test_data, test_labels = utils.split_train_test(data, labels, 10)
