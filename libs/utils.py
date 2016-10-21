@@ -48,9 +48,11 @@ def create_accuracy_tensor(Y_tensor, Y_pred_tensor):
 	accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 	return accuracy
 
-def create_fully_connected_layer(input, output_size, name=None, activation=tf.nn.relu, is_training=None):
+def create_fully_connected_layer(input, output_size, name=None, activation=tf.nn.relu, is_training=None, reuse=None):
 	input_size = input.get_shape().as_list()[1]
-	with tf.variable_scope(name or "fully_connected"):
+	with tf.variable_scope(name or "fully_connected") as scope:
+		if reuse:
+			scope.reuse_variables()
 		Weight = tf.get_variable(name='Weight', shape=[input_size, output_size], initializer=tf.random_normal_initializer(mean=0.0, stddev=0.1))
 		bias = tf.get_variable(name='bias', shape=[output_size], initializer=tf.constant_initializer())
 		h = tf.matmul(input, Weight) + bias
@@ -62,6 +64,9 @@ def create_convolution_layer_1D(input, filter_size, n_filters_in, n_filters_out,
 		bias = tf.get_variable( name='bias', shape=[n_filters_out], initializer=tf.constant_initializer())
 		h = tf.nn.bias_add( tf.nn.conv2d(input=input, filter=Weight, strides=strides, padding='SAME'), bias)
 		return activation(h)
+
+def create_max_pool_layer(input, strides=2):
+	return tf.nn.max_pool(input, ksize=[1, strides, strides, 1], strides=[1, strides, strides, 1], padding='SAME')
 
 def create_batch_normalization_layer(input, is_training, scope='BN'):
     bn_train = tf.contrib.layers.batch_norm(input, decay=0.9, center=True, scale=True,
