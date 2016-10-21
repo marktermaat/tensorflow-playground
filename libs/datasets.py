@@ -34,6 +34,20 @@ def load_activity_data(filename):
 	train_data, train_labels, test_data, test_labels = utils.split_train_test(data, labels, 10)
 	return train_data, train_labels, test_data, test_labels
 
+def load_dev_data():
+	data = np.genfromtxt('data/insemination_quarter_data_dev.csv', delimiter=',')
+	singular_labels = data[:,0].astype(np.int32)
+	data = data[:,1:]
+	labels = utils.to_one_hot_encoding(singular_labels, 2)
+
+	# Normalize data
+	history = data[:, 0:480-96]
+	history_means = np.mean(np.reshape(history, (len(history) * 4, 96)), axis=0)
+	history_std = np.std(np.reshape(history, (len(history) * 4, 96)), axis=0)
+	data = (data[:, 480-96:] - history_means) / history_std
+
+	return data, labels
+
 class Batch(object):
 	def __init__(self, data, labels):
 		self.data = data
