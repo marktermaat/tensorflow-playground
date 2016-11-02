@@ -9,12 +9,17 @@ def create_csv_reader(filenames, n_columns, num_epochs, shuffle=True):
 
 	return tf.decode_csv(value, record_defaults=record_defaults)
 
-def normalize_last_day(records):
+def normalize_last_day(records, normalize=None):
 	history_data = tf.pack(records[1:-96])
 	history_means, history_var = tf.nn.moments(tf.reshape(history_data, [-1, 96]), [0])
 	now_data = tf.pack(records[-96:])
 	history_std = tf.add(tf.sqrt(history_var), 1e-12)
 	data = tf.div(tf.sub(now_data, history_means), history_std)
+
+	if normalize is not None:
+		mean, var = tf.nn.moments(data, [0])
+		std = tf.add(tf.sqrt(var), 1e-12)
+		data = tf.div(tf.sub(data, mean), std)
 	
 	raw_label = records[0]
 	labels = tf.one_hot(records[0], 2)

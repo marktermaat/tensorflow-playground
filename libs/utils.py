@@ -48,21 +48,64 @@ def create_accuracy_tensor(Y_tensor, Y_pred_tensor):
 	accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 	return accuracy
 
-def create_fully_connected_layer(input, output_size, name=None, activation=tf.nn.relu, is_training=None, reuse=None):
+def create_fully_connected_layer(input, output_size, name=None, activation=tf.nn.relu, is_training=None, reuse=None,
+	return_all=None, given_weight=None, given_bias=None):
 	input_size = input.get_shape().as_list()[1]
 	with tf.variable_scope(name or "fully_connected") as scope:
 		if reuse:
 			scope.reuse_variables()
-		Weight = tf.get_variable(name='Weight', shape=[input_size, output_size], initializer=tf.random_normal_initializer(mean=0.0, stddev=0.1))
-		bias = tf.get_variable(name='bias', shape=[output_size], initializer=tf.constant_initializer())
+		Weight = given_weight if given_weight is not None else tf.get_variable(name='Weight', shape=[input_size, output_size], initializer=tf.random_normal_initializer(mean=0.0, stddev=0.1))
+		bias = given_bias if given_bias is not None else tf.get_variable(name='bias', shape=[output_size], initializer=tf.constant_initializer())
 		h = tf.matmul(input, Weight) + bias
-		return activation(h)
+		if return_all:
+			return activation(h), Weight, bias
+		else:
+			return activation(h)
 
-def create_convolution_layer_1D(input, filter_size, n_filters_in, n_filters_out, name=None, activation=tf.nn.relu, strides=[1,2,2,1]):
-	with tf.variable_scope(name or "convolution"):
-		Weight = tf.get_variable(name='Weight', shape=[1, filter_size, n_filters_in, n_filters_out], initializer=tf.random_normal_initializer())
-		bias = tf.get_variable( name='bias', shape=[n_filters_out], initializer=tf.constant_initializer())
+def create_fully_connected_layer_without_bias(input, output_size, name=None, activation=tf.nn.relu, is_training=None, reuse=None,
+	return_all=None, given_weight=None):
+	input_size = input.get_shape().as_list()[1]
+	with tf.variable_scope(name or "fully_connected") as scope:
+		if reuse:
+			scope.reuse_variables()
+		Weight = given_weight if given_weight is not None else tf.get_variable(name='Weight', shape=[input_size, output_size], initializer=tf.random_normal_initializer(mean=0.0, stddev=0.1))
+		h = tf.matmul(input, Weight)
+		if return_all:
+			return activation(h), Weight
+		else:
+			return activation(h)
+
+def create_convolution_layer_1D(input, filter_size, n_filters_in, n_filters_out, name=None,
+	activation=tf.nn.relu, strides=[1,2,2,1], reuse=None, return_all=None,
+	given_weight=None, given_bias=None):
+	with tf.variable_scope(name or "convolution") as scope:
+		if reuse:
+			scope.reuse_variables()
+		Weight = given_weight if given_weight is not None else tf.get_variable(name='Weight', shape=[1, filter_size, n_filters_in, n_filters_out], initializer=tf.random_normal_initializer())
+		bias = given_bias if given_bias is not None else tf.get_variable( name='bias', shape=[n_filters_out], initializer=tf.constant_initializer())
 		h = tf.nn.bias_add( tf.nn.conv2d(input=input, filter=Weight, strides=strides, padding='SAME'), bias)
+		if return_all:
+			return activation(h), Weight, bias
+		else:
+			return activation(h)
+
+def create_convolution_layer_1D_without_bias(input, filter_size, n_filters_in, n_filters_out, name=None,
+	activation=tf.nn.relu, strides=[1,1,2,1], reuse=None, return_all=None, given_weight=None):
+	with tf.variable_scope(name or "convolution") as scope:
+		if reuse:
+			scope.reuse_variables()
+		Weight = given_weight if given_weight is not None else tf.get_variable(name='Weight', shape=[1, filter_size, n_filters_in, n_filters_out], initializer=tf.random_normal_initializer(mean=0.0, stddev=0.02))
+		h = tf.nn.conv2d(input, Weight, strides, padding='SAME')
+		if return_all:
+			return activation(h), Weight
+		else:
+			return activation(h)
+
+def create_convolution_layer_1D_without_bias_transpose(input, Weight, output_shape, name=None, activation=tf.nn.relu, strides=[1,1,2,1], reuse=None):
+	with tf.variable_scope(name or "convolution") as scope:
+		if reuse:
+			scope.reuse_variables()
+		h = tf.nn.conv2d_transpose(input, Weight, output_shape, strides=strides, padding='SAME')
 		return activation(h)
 
 def create_max_pool_layer(input, strides=2):
@@ -83,3 +126,7 @@ def create_batch_normalization_layer(input, is_training, scope='BN'):
     scope=scope)
     layer = tf.cond(is_training, lambda: bn_train, lambda: bn_inference)
     return layer
+
+def make_summary(name, val):
+	return tf.core.framework.summary_pb2.Summary(value=[tf.core.framework.summary_pb2.Summary.Value(
+		tag=name,  simple_value=val)])
