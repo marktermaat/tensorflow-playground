@@ -7,7 +7,10 @@ import matplotlib.pyplot as plt
 from numpy import genfromtxt
 from libs import utils, datasets
 
-data, labels, test_data, test_labels = datasets.load_csv_data('data/insemination_quarter_data.csv')
+print("Loading data... ")
+data, labels, test_data, test_labels = datasets.load_activity_data('data/insemination_quarter_data_small.csv')
+print("Done")
+
 n_features = data.shape[1]
 
 utils.reset()
@@ -18,23 +21,21 @@ is_training = tf.placeholder(tf.bool, name='is_training')
 
 X_tensor = tf.reshape(X, [-1, n_features, 1, 1])
 
-filter_size = 3
-n_filters_in = 1
-n_filters_out = 8
-X_tensor_norm = utils.create_batch_normalization_layer(X_tensor, is_training, scope='input')
-conv1 = utils.create_convolution_layer_1D(X_tensor_norm, filter_size, n_filters_in, n_filters_out, name="convolution_1", strides=[1,2,1,1])
-conv1_norm = utils.create_batch_normalization_layer(conv1, is_training, scope='conv_1')
-# conv2 = utils.create_convolution_layer_1D(conv1_norm, filter_size, 8, 8, name="convolution_2", strides=[1,2,1,1])
-# conv2_norm = utils.create_batch_normalization_layer(conv2, is_training, scope='conv_2')
-# conv3 = utils.create_convolution_layer_1D(conv2_norm, filter_size, 8, 8, name="convolution_3", strides=[1,2,1,1])
-# conv3_norm = utils.create_batch_normalization_layer(conv3, is_training, scope='conv_3')
+filter_size = 5
+n_filters_in_1 = 1
+n_filters_out_1 = 16
+n_filters_in_2 = 16
+n_filters_out_2 = 32
+conv1 = utils.create_convolution_layer_1D(X_tensor, filter_size, n_filters_in_1, n_filters_out_1, name="convolution_1", strides=[1,1,1,1])
+pool1 = utils.create_max_pool_layer(conv1, strides=2)
+conv2 = utils.create_convolution_layer_1D(pool1, filter_size, n_filters_in_2, n_filters_out_2, name="convolution_2", strides=[1,1,1,1])
+pool2 = utils.create_max_pool_layer(conv2, strides=2)
 
 new_size = int(n_features / 2) * n_filters_out
-conv_output_flat = tf.reshape(conv1_norm, [-1, new_size])
+conv_output_flat = tf.reshape(pool2, [-1, new_size])
 
 layer1 = utils.create_fully_connected_layer(conv_output_flat, 64, name="fully_connected_layer1")
-layer1_norm = utils.create_batch_normalization_layer(layer1, is_training, scope='layer_1')
-Y_pred = utils.create_fully_connected_layer(layer1_norm, 2, name="fully_connected_layer2", activation=tf.nn.softmax)
+Y_pred = utils.create_fully_connected_layer(layer1, 2, name="fully_connected_layer2", activation=tf.nn.softmax)
 
 # Define cost and optimizer
 cross_entropy = utils.binary_cross_entropy_cost_function(Y, Y_pred)
@@ -45,7 +46,7 @@ optimizer = tf.train.AdamOptimizer(0.001).minimize(cross_entropy)
 accuracy = utils.create_accuracy_tensor(Y, Y_pred)
 
 n_epochs = 100
-batch_size = 50
+batch_size = 10
 
 sess = tf.Session()
 sess.run(tf.initialize_all_variables())
